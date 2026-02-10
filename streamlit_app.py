@@ -5,24 +5,23 @@ Interactive web interface for SACCO and MMF calculations using Streamlit
 """
 
 import streamlit as st
-import requests
-from datetime import datetime
-from typing import Optional
-
 
 # ============================================================================
-# CALCULATOR FUNCTIONS (From financial_calculator.py)
+# PAGE CONFIGURATION (MUST BE FIRST!)
+# ============================================================================
+
+st.set_page_config(
+    page_title="SACCO Calculator",
+    page_icon="🇰🇪",
+    layout="wide"
+)
+
+# ============================================================================
+# CALCULATOR FUNCTIONS
 # ============================================================================
 
 def calculate_sacco_returns(principal: float, monthly_contrib: float, annual_rate: float) -> dict:
-    """
-    Calculate SACCO investment returns.
-    
-    Formula:
-    - Total contributions = principal + (monthly_contribution × 12)
-    - Interest earned = Total contributions × (annual_rate / 100)
-    - Final amount = Total contributions + Interest earned
-    """
+    """Calculate SACCO investment returns with simple annual interest."""
     total_contributions = principal + (monthly_contrib * 12)
     interest_earned = total_contributions * (annual_rate / 100)
     final_amount = total_contributions + interest_earned
@@ -38,13 +37,7 @@ def calculate_sacco_returns(principal: float, monthly_contrib: float, annual_rat
 
 
 def calculate_mmf_returns(principal: float, days_invested: int, annual_rate: float) -> dict:
-    """
-    Calculate MMF investment returns using daily compounding.
-    
-    Formula (Daily Compounding):
-    Final Amount = Principal × (1 + (annual_rate / 100) / 365) ^ days_invested
-    Interest Earned = Final Amount - Principal
-    """
+    """Calculate MMF investment returns with daily compounding."""
     daily_rate = annual_rate / 365 / 100
     final_amount = principal * ((1 + daily_rate) ** days_invested)
     interest_earned = final_amount - principal
@@ -59,290 +52,174 @@ def calculate_mmf_returns(principal: float, days_invested: int, annual_rate: flo
     }
 
 
-
-# ============================================================================
-# PAGE CONFIGURATION
-# ============================================================================
-
-st.set_page_config(
-    page_title="SACCO Financial Calculator",
-    page_icon="🇰🇪",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Custom CSS for better styling
-st.markdown("""
-    <style>
-    .main {
-        padding: 2rem;
-    }
-    .stTabs [data-baseweb="tab-list"] button {
-        font-size: 18px;
-        font-weight: bold;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # ============================================================================
 # HEADER
 # ============================================================================
 
 st.title("🇰🇪 SACCO Financial Calculator")
-st.markdown("### Kenya SACCOs - Investment Returns Calculator")
-st.markdown("---")
+st.markdown("#### Kenya SACCOs - Investment Returns Calculator")
+st.divider()
+
 
 # ============================================================================
-# SIDEBAR - INFO
+# SIDEBAR
 # ============================================================================
 
 with st.sidebar:
     st.header("ℹ️ About")
     st.markdown("""
-    **SACCO Financial Calculator** helps Kenyan SACCO members calculate:
+    Calculate SACCO and MMF investment returns.
     
-    1. **SACCO Returns** - Annual interest on contributions
-    2. **MMF Returns** - Money Market Fund daily compounding
-    
-    All amounts in **KES** (Kenyan Shillings)
+    **SACCO**: Simple annual interest
+    **MMF**: Daily compounding returns
     """)
-    
-    st.divider()
-    st.markdown("""
-    **Formulas Used:**
-    
-    **SACCO (Simple Interest):**
-    - Total = Principal + (Monthly × 12)
-    - Interest = Total × (Rate / 100)
-    
-    **MMF (Daily Compound):**
-    - Final = Principal × (1 + Daily Rate)^Days
-    """)
-    
-    st.divider()
-    st.markdown("*Created for SACCO Members in Kenya*")
 
 
 # ============================================================================
-# MAIN TABS
+# MAIN CONTENT - TABS
 # ============================================================================
 
 tab1, tab2 = st.tabs(["📊 SACCO Calculator", "💰 MMF Calculator"])
 
 # ============================================================================
-# TAB 1: SACCO CALCULATOR
+# TAB 1: SACCO
 # ============================================================================
 
 with tab1:
     st.header("SACCO Interest Calculator")
-    st.markdown("Calculate your SACCO returns over 12 months")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         principal = st.number_input(
-            "Initial Principal (KES)",
+            "Principal (KES)",
             min_value=0.0,
             value=50000.0,
-            step=1000.0,
-            help="Your initial investment in the SACCO"
+            step=1000.0
         )
     
     with col2:
-        monthly_contrib = st.number_input(
+        monthly = st.number_input(
             "Monthly Contribution (KES)",
             min_value=0.0,
             value=5000.0,
-            step=500.0,
-            help="Amount you contribute each month"
+            step=500.0
         )
     
     with col3:
-        annual_rate = st.number_input(
-            "Annual Interest Rate (%)",
+        rate = st.number_input(
+            "Annual Rate (%)",
             min_value=0.0,
             max_value=100.0,
             value=8.0,
-            step=0.5,
-            help="SACCO annual interest rate"
+            step=0.5
         )
     
-    # Calculate SACCO returns
-    if st.button("Calculate SACCO Returns", key="sacco_calc"):
-        sacco_results = calculate_sacco_returns(principal, monthly_contrib, annual_rate)
+    if st.button("Calculate", key="sacco"):
+        result = calculate_sacco_returns(principal, monthly, rate)
         
-        # Display results in columns
         st.divider()
-        st.subheader("📈 Results After 1 Year")
+        st.subheader("Results")
         
-        result_col1, result_col2, result_col3, result_col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
         
-        with result_col1:
-            st.metric(
-                "Initial Principal",
-                f"KES {sacco_results['principal']:,.2f}"
-            )
+        with col1:
+            st.metric("Principal", f"KES {result['principal']:,.0f}")
         
-        with result_col2:
-            st.metric(
-                "Total Contributions",
-                f"KES {sacco_results['total_contributions']:,.2f}",
-                delta=f"+{sacco_results['total_contributions'] - sacco_results['principal']:,.2f}"
-            )
+        with col2:
+            st.metric("Total Contributions", f"KES {result['total_contributions']:,.0f}")
         
-        with result_col3:
-            st.metric(
-                "Interest Earned",
-                f"KES {sacco_results['interest_earned']:,.2f}",
-                f"{annual_rate}%"
-            )
+        with col3:
+            st.metric("Interest Earned", f"KES {result['interest_earned']:,.2f}")
         
-        with result_col4:
-            st.metric(
-                "🎯 Final Amount",
-                f"KES {sacco_results['final_amount']:,.2f}",
-                delta=f"+{sacco_results['interest_earned']:,.2f}",
-                delta_color="off"
-            )
+        with col4:
+            st.metric("Final Amount", f"KES {result['final_amount']:,.2f}")
         
-        # Display summary table
         st.divider()
-        summary_data = {
+        st.write("**Breakdown:**")
+        
+        data = {
             "Item": [
                 "Initial Principal",
-                "Monthly Contribution",
-                "Number of Months",
+                "Monthly Contribution × 12",
                 "Total Contributions",
-                "Annual Interest Rate",
+                "Interest Rate",
                 "Interest Earned",
                 "Final Amount"
             ],
             "Value": [
-                f"KES {sacco_results['principal']:,.2f}",
-                f"KES {sacco_results['monthly_contribution']:,.2f}",
-                "12",
-                f"KES {sacco_results['total_contributions']:,.2f}",
-                f"{sacco_results['annual_rate']:.2f}%",
-                f"KES {sacco_results['interest_earned']:,.2f}",
-                f"KES {sacco_results['final_amount']:,.2f}"
+                f"KES {result['principal']:,.2f}",
+                f"KES {result['monthly_contribution'] * 12:,.2f}",
+                f"KES {result['total_contributions']:,.2f}",
+                f"{result['annual_rate']:.2f}%",
+                f"KES {result['interest_earned']:,.2f}",
+                f"KES {result['final_amount']:,.2f}"
             ]
         }
         
-        st.table(summary_data)
+        st.table(data)
 
 
 # ============================================================================
-# TAB 2: MMF CALCULATOR
+# TAB 2: MMF
 # ============================================================================
 
 with tab2:
     st.header("Money Market Fund (MMF) Calculator")
-    st.markdown("Calculate your MMF investment returns with daily compounding")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        investment_amount = st.number_input(
+        investment = st.number_input(
             "Investment Amount (KES)",
             min_value=0.0,
             value=100000.0,
-            step=5000.0,
-            help="Amount to invest in MMF"
+            step=5000.0
         )
     
     with col2:
-        days_invested = st.number_input(
+        days = st.number_input(
             "Days Invested",
             min_value=1,
             value=90,
-            step=1,
-            help="Number of days money is invested"
+            step=1
         )
     
     with col3:
-        # Option to fetch or manual input for MMF rate
-        rate_source = st.radio(
-            "MMF Rate Source",
-            ["Enter Manually", "Fetch from Kenya (Beta)"],
-            index=0
+        mmf_rate = st.number_input(
+            "Annual Rate (%)",
+            min_value=0.0,
+            max_value=50.0,
+            value=6.0,
+            step=0.1
         )
-        
-        if rate_source == "Enter Manually":
-            mmf_rate = st.number_input(
-                "MMF Annual Interest Rate (%)",
-                min_value=0.0,
-                max_value=50.0,
-                value=6.0,
-                step=0.1,
-                help="Annual interest rate for MMF"
-            )
-        else:
-            # Try to fetch rate
-            with st.spinner("Fetching latest MMF rates..."):
-                try:
-                    response = requests.get("https://www.cytonn.com/", timeout=3)
-                    mmf_rate = st.number_input(
-                        "MMF Annual Interest Rate (%)",
-                        min_value=0.0,
-                        max_value=50.0,
-                        value=6.0,
-                        step=0.1,
-                        help="Enter MMF rate manually"
-                    )
-                    st.info("⚠️ Could not auto-fetch. Please enter rate manually.")
-                except:
-                    mmf_rate = st.number_input(
-                        "MMF Annual Interest Rate (%)",
-                        min_value=0.0,
-                        max_value=50.0,
-                        value=6.0,
-                        step=0.1,
-                        help="Enter MMF rate manually"
-                    )
-                    st.warning("⚠️ No internet connection. Entering rate manually.")
     
-    # Calculate MMF returns
-    if st.button("Calculate MMF Returns", key="mmf_calc"):
-        mmf_results = calculate_mmf_returns(investment_amount, days_invested, mmf_rate)
+    if st.button("Calculate", key="mmf"):
+        result = calculate_mmf_returns(investment, days, mmf_rate)
         
-        # Display results in columns
         st.divider()
-        st.subheader("📈 Investment Results")
+        st.subheader("Results")
         
-        result_col1, result_col2, result_col3, result_col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
         
-        with result_col1:
-            st.metric(
-                "Investment Amount",
-                f"KES {mmf_results['principal']:,.2f}"
-            )
+        with col1:
+            st.metric("Investment", f"KES {result['principal']:,.0f}")
         
-        with result_col2:
-            st.metric(
-                "Days Invested",
-                f"{mmf_results['days_invested']} days"
-            )
+        with col2:
+            st.metric("Days", f"{result['days_invested']}")
         
-        with result_col3:
-            st.metric(
-                "Interest Earned",
-                f"KES {mmf_results['interest_earned']:,.2f}",
-                f"{mmf_rate}% p.a."
-            )
+        with col3:
+            st.metric("Interest Earned", f"KES {result['interest_earned']:,.2f}")
         
-        with result_col4:
-            st.metric(
-                "🎯 Final Value",
-                f"KES {mmf_results['final_amount']:,.2f}",
-                delta=f"+{mmf_results['interest_earned']:,.2f}",
-                delta_color="off"
-            )
+        with col4:
+            st.metric("Final Value", f"KES {result['final_amount']:,.2f}")
         
-        # Display summary table
         st.divider()
-        summary_data = {
+        st.write("**Breakdown:**")
+        
+        data = {
             "Item": [
-                "Initial Investment",
+                "Investment Amount",
                 "Days Invested",
                 "Annual Rate",
                 "Daily Rate",
@@ -351,24 +228,17 @@ with tab2:
                 "Return %"
             ],
             "Value": [
-                f"KES {mmf_results['principal']:,.2f}",
-                f"{mmf_results['days_invested']} days",
-                f"{mmf_results['annual_rate']:.2f}%",
-                f"{mmf_results['daily_rate_percent']:.4f}%",
-                f"KES {mmf_results['interest_earned']:,.2f}",
-                f"KES {mmf_results['final_amount']:,.2f}",
-                f"{(mmf_results['interest_earned'] / mmf_results['principal'] * 100):.3f}%"
+                f"KES {result['principal']:,.2f}",
+                f"{result['days_invested']} days",
+                f"{result['annual_rate']:.2f}%",
+                f"{result['daily_rate_percent']:.4f}%",
+                f"KES {result['interest_earned']:,.2f}",
+                f"KES {result['final_amount']:,.2f}",
+                f"{(result['interest_earned'] / result['principal'] * 100):.3f}%"
             ]
         }
         
-        st.table(summary_data)
-        
-        # Additional info
-        st.info(
-            f"💡 With daily compounding at {mmf_rate}% annual rate, "
-            f"your KES {mmf_results['principal']:,.0f} investment will earn "
-            f"KES {mmf_results['interest_earned']:,.2f} in {mmf_results['days_invested']} days."
-        )
+        st.table(data)
 
 
 # ============================================================================
@@ -378,6 +248,6 @@ with tab2:
 st.divider()
 st.markdown("""
 ---
-**Disclaimer:** This calculator is for educational purposes only. 
-Actual returns may vary based on market conditions and SACCO policies.
+**Disclaimer:** For educational purposes only.  
+**Developer:** Martin Gitau | **Email:** tiamsparrow@gmail.com
 """)
