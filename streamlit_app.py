@@ -8,13 +8,57 @@ import streamlit as st
 import requests
 from datetime import datetime
 from typing import Optional
-import sys
-sys.path.insert(0, '.')
 
-from financial_calculator import (
-    calculate_sacco_returns,
-    calculate_mmf_returns
-)
+
+# ============================================================================
+# CALCULATOR FUNCTIONS (From financial_calculator.py)
+# ============================================================================
+
+def calculate_sacco_returns(principal: float, monthly_contrib: float, annual_rate: float) -> dict:
+    """
+    Calculate SACCO investment returns.
+    
+    Formula:
+    - Total contributions = principal + (monthly_contribution × 12)
+    - Interest earned = Total contributions × (annual_rate / 100)
+    - Final amount = Total contributions + Interest earned
+    """
+    total_contributions = principal + (monthly_contrib * 12)
+    interest_earned = total_contributions * (annual_rate / 100)
+    final_amount = total_contributions + interest_earned
+    
+    return {
+        "principal": principal,
+        "monthly_contribution": monthly_contrib,
+        "total_contributions": total_contributions,
+        "annual_rate": annual_rate,
+        "interest_earned": interest_earned,
+        "final_amount": final_amount
+    }
+
+
+def calculate_mmf_returns(principal: float, days_invested: int, annual_rate: float) -> dict:
+    """
+    Calculate MMF investment returns using daily compounding.
+    
+    Formula (Daily Compounding):
+    Final Amount = Principal × (1 + (annual_rate / 100) / 365) ^ days_invested
+    Interest Earned = Final Amount - Principal
+    """
+    daily_rate = annual_rate / 365 / 100
+    final_amount = principal * ((1 + daily_rate) ** days_invested)
+    interest_earned = final_amount - principal
+    
+    return {
+        "principal": principal,
+        "days_invested": days_invested,
+        "annual_rate": annual_rate,
+        "daily_rate_percent": daily_rate * 100,
+        "interest_earned": interest_earned,
+        "final_amount": final_amount
+    }
+
+
 
 # ============================================================================
 # PAGE CONFIGURATION
